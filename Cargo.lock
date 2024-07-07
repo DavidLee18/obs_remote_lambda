@@ -558,26 +558,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cwmc_obs_lambda"
-version = "0.1.0"
-dependencies = [
- "aws-config",
- "aws-sdk-cloudwatchlogs",
- "aws-sdk-ec2",
- "aws-sdk-ssm",
- "aws-smithy-runtime-api",
- "aws_lambda_events",
- "http 1.1.0",
- "lambda_http",
- "lambda_runtime",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "deranged"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1170,6 +1150,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "081b846d1d56ddfc18fdf1a922e4f6e07a11768ea1b92dec44e42b72712ccfce"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "obs_remote_lambda"
+version = "0.1.0"
+dependencies = [
+ "aws-config",
+ "aws-sdk-cloudwatchlogs",
+ "aws-sdk-ec2",
+ "aws-sdk-ssm",
+ "aws-smithy-runtime-api",
+ "aws_lambda_events",
+ "http 1.1.0",
+ "lambda_http",
+ "lambda_runtime",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
