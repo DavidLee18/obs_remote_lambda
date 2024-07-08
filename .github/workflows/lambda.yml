@@ -17,9 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@stable
-    - uses: goto-bus-stop/setup-zig@v1
-      with:
-        version: 0.9.1
+    - uses: korandoru/setup-zig@v1
     - uses: zerj9/setup-cargo-lambda@v0.1.0
     - run: cargo lambda build --arm64 -r
     - name: Deploy
