@@ -1,0 +1,26 @@
+name: Lambda
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_and_deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install cargo-lambda
+      run: cargo install cargo-lambda
+    - name: Build Lambda
+      run: cargo lambda build --arm64 -r
+    - name: Deploy
+      run: |
+        cargo lambda deploy get_info --iam-role ${{ secrets.LAMBDA_IAM }} --region us-east-1
+        cargo lambda deploy stop_streaming --iam-role ${{ secrets.LAMBDA_IAM }} --region us-east-1
