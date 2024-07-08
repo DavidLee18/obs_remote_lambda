@@ -16,10 +16,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install cargo-lambda
-      run: cargo install cargo-lambda
-    - name: Build Lambda
-      run: cargo lambda build --arm64 -r
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: goto-bus-stop/setup-zig@v1
+      with:
+        version: 0.9.1
+    - uses: zerj9/setup-cargo-lambda@v0.1.0
+    - run: cargo lambda build --arm64 -r
     - name: Deploy
       run: |
         cargo lambda deploy get_info --iam-role ${{ secrets.LAMBDA_IAM }} --region us-east-1
