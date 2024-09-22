@@ -1,10 +1,8 @@
 use std::time::Duration;
 
-use aws_lambda_events::apigw::{ApiGatewayProxyRequest, ApiGatewayProxyResponse};
 use aws_sdk_cloudwatchlogs::operation::get_log_events::{GetLogEventsError, GetLogEventsOutput};
-use aws_smithy_runtime_api::client::result::SdkError;
-use http::HeaderMap;
-use lambda_http::LambdaEvent;
+use http::Response;
+use lambda_http::{Body, RequestExt};
 use tokio::time::sleep;
 
 const WAIT_DURATION: Duration = Duration::from_secs(7);
@@ -29,7 +27,7 @@ pub async fn get_logs(
     GetLogEventsOutput,
     aws_smithy_runtime_api::client::result::SdkError<
         GetLogEventsError,
-        aws_smithy_runtime_api::client::orchestrator::HttpResponse,
+        aws_smithy_runtime_api::http::Response,
     >,
 > {
     log.get_log_events()
@@ -47,25 +45,18 @@ pub async fn do_(
     log: &aws_sdk_cloudwatchlogs::Client,
     ec2: &aws_sdk_ec2::Client,
     command: &str,
-    event: LambdaEvent<ApiGatewayProxyRequest>,
-) -> Result<ApiGatewayProxyResponse, lambda_http::Error> {
-    let params = event.payload.path_parameters;
+    req: http::Request<Body>,
+) -> Result<lambda_http::Response<Body>, lambda_http::Error> {
+    let params = req.path_parameters();
     let proxy = params
-        .get("proxy")
+        .first("proxy")
         .ok_or(AppError(String::from("no path parameter named 'proxy'")))?;
     let wspw = params
-        .get("wspw")
+        .first("wspw")
         .ok_or(AppError(String::from("no path parameter named 'wspw'")))?;
-    let server = event
-        .payload
-        .query_string_parameters
-        .first("server")
-        .unwrap_or("cwmc2-obs");
-    let version = event
-        .payload
-        .query_string_parameters
-        .first("version")
-        .unwrap_or("2");
+    let query = req.query_string_parameters();
+    let server = query.first("server").unwrap_or("cwmc2-obs");
+    let version = query.first("version").unwrap_or("2");
 
     let output = ssm
         .send_command()
@@ -141,7 +132,7 @@ pub async fn do_(
 
     let logs_output = match get_logs(log, command_id, instance_id, "stdout").await {
             Ok(o) => o,
-            Err(SdkError::ServiceError(e)) => match e.err() {
+            Err(aws_smithy_runtime_api::client::result::SdkError::ServiceError(e)) => match e.err() {
                 aws_sdk_cloudwatchlogs::operation::get_log_events::GetLogEventsError::ResourceNotFoundException(_) => get_logs(log, command_id, instance_id, "stderr").await
                     .map_err(|err| AppError(format!("error from logging /{}/{}/stderr: {:?}", command_id, instance_id, err)))?,
                 e_ => Err(AppError(format!("error from logging /{}/{}/stdout: {:?}", command_id, instance_id, e_)))?,
@@ -157,14 +148,13 @@ pub async fn do_(
         .collect::<Option<Vec<String>>>()
         .ok_or(AppError(String::from("log message does not exist")))?;
 
-    Ok(ApiGatewayProxyResponse {
-        status_code: 200,
-        headers: HeaderMap::default(),
-        multi_value_headers: HeaderMap::default(),
-        body: Some(lambda_http::Body::Text(
+    let (parts, ()) = Response::default().into_parts();
+
+    Ok(Response::from_parts(
+        parts,
+        lambda_http::Body::Text(
             serde_json::to_string(&events)
                 .map_err(|e| AppError(format!("serialize error: {:?}", e)))?,
-        )),
-        is_base64_encoded: false,
-    })
+        ),
+    ))
 }
